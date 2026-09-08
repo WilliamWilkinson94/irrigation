@@ -1,1 +1,30 @@
+version: '3.8'
 
+services:
+  # 1. DEFINES THE DATABASE CONTAINER
+  postgres:
+    image: postgres:15-alpine            # Downloads official PostgreSQL image
+    container_name: irrigation-db
+    environment:                         # Sets database credentials automatically
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: botanical_db
+    ports:
+      - "5432:5432"                      # Exposes PostgreSQL on local port 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # Keeps database data saved even if container stops
+
+  # 2. DEFINES YOUR NODE.JS APP CONTAINER
+  app:
+    build: .                             # Builds the image using your local Dockerfile
+    container_name: irrigation-app
+    ports:
+      - "8080:8080"                      # Exposes web app on http://localhost:8080
+    environment:                         # Connects app directly to the 'postgres' container
+      - DATABASE_URL=postgresql://postgres:yourpassword@postgres:5432/botanical_db?schema=public
+      - PORT=8080
+    depends_on:
+      - postgres                         # Ensures PostgreSQL starts before your app runs
+
+volumes:
+  pgdata:                                # Persistent storage volume for PostgreSQL
