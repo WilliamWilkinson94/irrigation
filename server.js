@@ -290,6 +290,14 @@ app.get('/api/firmware/revisions/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
+// Serve compiled frontend static build in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'dist')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+}
 server.listen(PORT, () => {
   console.log(`[Server] PostgreSQL-backed Node.js server running on http://localhost:${PORT}`);
 });
