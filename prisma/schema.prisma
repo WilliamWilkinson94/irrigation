@@ -1,0 +1,77 @@
+// 1. Database & Client Configuration
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 2. Device Configuration & Actuator State
+model Device {
+  id                String   @id @default(uuid())
+  name              String   @default("ESP32 Irrigation Node")
+  macAddress        String?  @unique
+  moistureThreshold Int      @default(300)
+  solenoidOneActive Boolean  @default(false)
+  solenoidTwoActive Boolean  @default(false)
+  isOnline          Boolean  @default(false)
+  updatedAt         DateTime @updatedAt
+}
+
+// 3. Real-Time Soil Moisture Sensor Logs
+model TelemetryLog {
+  id            BigInt   @id @default(autoincrement())
+  moistureValue Int
+  rawAdc        Int?
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// 4. Calendar Schedules & Historical Events (FullCalendar Support)
+enum EventType {
+  SCHEDULED
+  MOISTURE_AUTO_TRIGGER
+  MANUAL_OVERRIDE
+}
+
+model WateringEvent {
+  id          String    @id @default(uuid())
+  title       String
+  startTime   DateTime
+  endTime     DateTime?
+  solenoidId  Int       @default(1) // 1 or 2
+  eventType   EventType @default(SCHEDULED)
+  createdAt   DateTime  @default(now())
+
+  @@index([startTime])
+}
+
+// 5. Firmware Revisions & OTA Binaries (Monaco Code Editor Support)
+model FirmwareRevision {
+  id             String   @id @default(uuid())
+  version        Int      @default(autoincrement())
+  versionTag     String   @unique // e.g., "v1.0.1" or "v1725888000"
+  rawCode        String   @db.Text
+  binaryPath     String?  // Filepath to compiled .bin on disk or S3
+  compileSuccess Boolean  @default(false)
+  compileError   String?  @db.Text
+  createdAt      DateTime @default(now())
+}
+
+// 6. System Audit Logs
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     LogLevel @default(INFO)
+  source    String   // e.g., "COMPILER", "WEBSOCKET", "OTA_ENGINE"
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+}
