@@ -1,18 +1,21 @@
-version: '3.8'
-
 services:
   # 1. DEFINES THE DATABASE CONTAINER
   postgres:
     image: postgres:15-alpine            # Downloads official PostgreSQL image
     container_name: irrigation-db
     environment:                         # Sets database credentials automatically
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: yourpassword
-      POSTGRES_DB: botanical_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"                      # Exposes PostgreSQL on local port 5432
     volumes:
       - pgdata:/var/lib/postgresql/data  # Keeps database data saved even if container stops
+    healthcheck:                         # Ensures DB is accepting connections before dependent apps start
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
 
   # 2. DEFINES YOUR NODE.JS APP CONTAINER
   app:
@@ -21,10 +24,11 @@ services:
     ports:
       - "8080:8080"                      # Exposes web app on http://localhost:8080
     environment:                         # Connects app directly to the 'postgres' container
-      - DATABASE_URL=postgresql://postgres:yourpassword@postgres:5432/botanical_db?schema=public
-      - PORT=8080
+      - DATABASE_URL=${DATABASE_URL}
+      - PORT=${PORT}
     depends_on:
-      - postgres                         # Ensures PostgreSQL starts before your app runs
+      postgres:
+        condition: service_healthy       # Waits until PostgreSQL passes the healthcheck
 
 volumes:
   pgdata:                                # Persistent storage volume for PostgreSQL
