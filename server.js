@@ -187,7 +187,7 @@ app.post('/api/telemetry', async (req, res) => {
       createdAt: log.createdAt,
     });
 
-    res.status(201).json(log);
+    res.status(201).json({ ...log, id: log.id.toString() });
   } catch (err) {
     res.status(500).json({ error: 'Failed to log telemetry.' });
   }
@@ -290,14 +290,21 @@ app.get('/api/firmware/revisions/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
-// Serve compiled frontend static build in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'dist')));
 
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
-}
+// Serve static build files if dist folder exists
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Fallback: Serve index.html if built, otherwise show API status message
+app.get('*', async (req, res) => {
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  try {
+    await fs.access(indexPath);
+    res.sendFile(indexPath);
+  } catch {
+    res.send('Micro-Irrigation API Server is running!');
+  }
+});
+
 server.listen(PORT, () => {
   console.log(`[Server] PostgreSQL-backed Node.js server running on http://localhost:${PORT}`);
 });
